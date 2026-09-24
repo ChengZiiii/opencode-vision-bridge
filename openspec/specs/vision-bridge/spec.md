@@ -23,7 +23,16 @@ in both `peerDependencies` and `devDependencies`, expose the built
 `dist/index.js` through both `exports["."]` and `exports["./server"]` (the
 latter is what `opencode plugin`'s manifest reader detects), and declare an
 `engines.opencode` range of `^1.18.0` so incompatible opencode versions skip
-loading with a warning.
+loading with a warning. The manifest `scripts` `SHALL NOT` declare any of the
+pacote prepare-trigger names — `preinstall`, `install`, `postinstall`,
+`prepack`, `prepare`, `build` — and the manifest `SHALL NOT` declare a
+`workspaces` field (a seventh trigger; see anomalyco/opencode issue #49704),
+because opencode 1.18.32's bundled pacote forces git-dep preparation (an
+inner `npm install` in the cloned repo) for git/github-spec installs whenever
+ANY of those triggers is present, and that preparation fails inside the
+compiled opencode binary (the spawned `npm-cli.js` runs under the opencode
+executable itself). The build task `SHALL` use a non-trigger script name
+(`bundle`).
 
 #### Scenario: Install resolves the 1.18.x SDK
 
@@ -31,13 +40,21 @@ Given the package manifest declares `@opencode-ai/plugin` `^1.18.0` in
 `peerDependencies` and `devDependencies`,
 when `bun install` runs,
 then `bun.lock` is regenerated and contains `@opencode-ai/plugin` 1.x
-and the build (`bun run build`) produces a self-contained `dist/index.js`.
+and the build (`bun run bundle`) produces a self-contained `dist/index.js`.
 
 #### Scenario: CLI compatibility range
 
 Given `package.json` declares `"engines": { "opencode": "^1.18.0" }`,
 when an opencode CLI outside that range loads the plugin,
 then the plugin is skipped with a warning instead of failing the load.
+
+#### Scenario: Git-spec plugin install skips preparation
+
+Given the manifest declares no prepare-trigger script,
+when `opencode plugin github:<owner>/<repo> [--global]` installs the plugin
+(opencode 1.18.32, Windows host),
+then the install completes without git dep preparation (no inner
+`npm install`) and the plugin registers on the next launch.
 
 ### Requirement: RB-2: Default export is dual-entry (hooks + v2 setup)
 
@@ -69,20 +86,6 @@ Given a v2 host whose `ctx.agent` lacks a `transform` method or whose agent
 draft lacks `get`/`update`,
 when `setup` runs,
 then the agent registration is skipped without throwing.
-
-### Requirement: RB-3: Skill installer targets the opencode config dir
-
-**Requirement:** `scripts/install-skill.mjs` `SHALL` install the skill to
-`~/.config/opencode/skills/vision/SKILL.md`, honoring `OPENCODE_CONFIG_DIR`
-and `XDG_CONFIG_HOME`. Output `SHALL` identify the package as
-`opencode-vision-bridge`.
-
-#### Scenario: Install to default location
-
-Given `OPENCODE_CONFIG_DIR` is unset and `XDG_CONFIG_HOME` is unset,
-when the script runs,
-then `SKILL.md` is copied to
-`<home>/.config/opencode/skills/vision/SKILL.md`.
 
 ### Requirement: RB-4: Provider/model id matching is case-insensitive
 
@@ -138,7 +141,7 @@ then the model is registered for capability routing and usable as an
 ### Requirement: RB-6: SKILL.md is opencode-ized
 
 **Requirement:** `SKILL.md` `SHALL` use opencode terminology throughout, name
-`opencode-vision-bridge` as the temporary image subdirectory, and `SHALL
+`opencode-vision-delegate` as the temporary image subdirectory, and `SHALL
 NOT` reference any model discovery script or picker flow — the
 `vision-agent` model is configured by the user through the agent model
 override in opencode config. The skill's documented tool-call contract
@@ -148,34 +151,52 @@ plugin's tool definition exactly.
 #### Scenario: Skill docs match plugin behavior
 
 Given the plugin materializes dropped images under
-`<system-temp>/opencode-vision-bridge/`,
+`<system-temp>/opencode-vision-delegate/`,
 when the skill describes Source D,
 then it documents `[vision:dropped-image]` with `path` under
-`opencode-vision-bridge`.
+`opencode-vision-delegate`.
 
 ### Requirement: RB-7: README documents opencode-vision-bridge
 
-**Requirement:** `README.md` `SHALL` describe the plugin's purpose, the
-verified installation methods for opencode 1.18.32 (`opencode plugin
-<pkg> [--global] [--force]` npm install, `file://` config path, single-file
-`~/.config/opencode/plugin/`), the dual v1/v2 entry explanation, the single
-`vision-agent` subagent registered WITHOUT a default model, the agent model
-override as the single vision model knob for both the `vision_analyze` tool
-and the subagent, the request tuning knobs (VT-7), the auto-allowed
-`vision_analyze` permission (explicit user `deny` wins), the tool-first /
-subagent-fallback routing, the disable option (`disable: true` disables both
-paths), per-model vision routing (multimodal models receive image parts
-natively and do not delegate; text-only models receive
-`[vision:dropped-image]` markers and delegate), skill discovery
-(`skills.paths` package scan; postinstall fallback copy; manual copy for
-single-file installs), troubleshooting, and attribution to the upstream MIT
-projects.
+**Requirement:** `README.md` `SHALL` describe the plugin's purpose under the
+name `opencode-vision-delegate`, the verified installation methods for
+opencode 1.18.32 (`opencode plugin opencode-vision-delegate [--global]
+[--force]` npm install, `opencode plugin
+github:ChengZiiii/opencode-vision-delegate --global` git-spec install,
+`file://` config path, single-file `~/.config/opencode/plugin/`), the dual
+v1/v2 entry explanation, the single `vision-agent` subagent registered
+WITHOUT a default model, the agent model override as the single vision model
+knob for both the `vision_analyze` tool and the subagent, the request tuning
+knobs (VT-7), the auto-allowed `vision_analyze` permission (explicit user
+`deny` wins), the tool-first / subagent-fallback routing, the disable option
+(`disable: true` disables both paths), per-model vision routing (multimodal
+models receive image parts natively and do not delegate; text-only models
+receive `[vision:dropped-image]` markers and delegate), skill discovery
+(`skills.paths` package scan; manual copy for single-file installs), manual
+uninstall (remove the `plugin` entry from the opencode config, delete the
+`~/.cache/opencode/packages/` store dir for the installed spec — e.g.
+`opencode_vision_delegate` for the npm name or
+`github_ChengZiiii_opencode-vision-delegate` for the git spec), the
+`<system-temp>/opencode-vision-delegate/` image temp dir, a rename note for
+users of the pre-rename `github:ChengZiiii/opencode-vision-bridge` spec
+(switch the config entry, delete the old store dir), troubleshooting, and
+attribution to the upstream MIT projects.
 
 #### Scenario: Installation method verified
 
 Given the README lists the loading methods,
 then each method reflects the on-machine verification performed during the
 port (works on opencode 1.18.32 sandbox).
+
+#### Scenario: Rename migration documented
+
+Given a user installed the plugin under the pre-rename github spec
+`github:ChengZiiii/opencode-vision-bridge`,
+when they read the README rename note,
+then they know to switch the `plugin` entry to
+`github:ChengZiiii/opencode-vision-delegate`, reinstall via `opencode
+plugin`, and delete the old store dir
+`~/.cache/opencode/packages/github_ChengZiiii_opencode-vision-bridge`.
 
 ### Requirement: RB-8: Plugin loads and registers the vision subagent
 
@@ -208,10 +229,18 @@ user messages whose handling model is NOT vision-capable. For user messages
 whose handling model IS vision-capable, image parts `SHALL` pass through
 unchanged so the multimodal model receives them natively. Capability `SHALL`
 be resolved per message in this order: (1) the message's `info.model`
-(`providerID`/`modelID`) looked up case-insensitively against the registered
-vision model key set; (2) the message's `info.agent` looked up in the
+(`providerID`/`modelID`) looked up case-insensitively against the
+vision-capable key set; (2) the message's `info.agent` looked up in the
 agent→capability map built at config time; (3) the top-level config `model`
-capability as final fallback.
+capability as final fallback. The vision-capable key set `SHALL` be built
+from the FULL cached models catalog (`~/.cache/opencode/models.json`) merged
+with config provider model overrides (`provider(s).<id>.models`), filtered by
+image-input capability, and `SHALL NOT` be gated by provider-availability
+heuristics (`enabled_providers`, config provider blocks, environment keys, or
+stored credentials) — an already-active request model resolves against
+catalog metadata alone. The key set includes deprecated models (capability
+resolution reflects the model serving the request; the deprecated-status
+filter applies only to the discovery/suggestion path, RB-5).
 
 #### Scenario: Multimodal agent keeps native image input
 
@@ -236,16 +265,30 @@ to a text-only agent,
 when the transform runs,
 then the image part is NOT rewritten (message model wins over agent map).
 
+#### Scenario: Keyless provider session keeps native image input
+
+Given a provider that is present in the cached catalog with a multimodal
+model (image input modality) but is NOT availability-configured (no
+`enabled_providers` entry, no config provider block, no environment key set,
+no stored credential — e.g. keyless Zen `opencode/space-bunny-free`), and a
+user message whose `info.model` names that model and contains an image
+FilePart,
+when the messages transform runs,
+then the FilePart is left untouched (no `[vision:dropped-image]` marker, no
+temp file written).
+
 ### Requirement: RV-2: System prompt instructions are model-appropriate
 
 **Requirement:** The `experimental.chat.system.transform` hook `SHALL`
-inspect `input.model` (the `Model` shape with `providerID`/`id`) and, for a
-vision-capable model, push a single `[vision:native]` instruction stating
-the model sees images natively and MUST NOT use the vision skill, call
-`vision_analyze`, or spawn a `vision-*` subagent. For a text-only model the
-transform `SHALL` inject nothing — delegation guidance comes from the vision
-skill (RV-4), and the plugin `SHALL` maintain no model-choice state of any
-kind.
+inspect `input.model` (the `Model` shape with `providerID`/`id`) against the
+same vision-capable key set as RV-1 (full cached models catalog merged with
+config provider model overrides, case-insensitively, NOT gated by provider
+availability) and, for a vision-capable model, push a single
+`[vision:native]` instruction stating the model sees images natively and
+MUST NOT use the vision skill, call `vision_analyze`, or spawn a `vision-*`
+subagent. For a text-only model the transform `SHALL` inject nothing —
+delegation guidance comes from the vision skill (RV-4), and the plugin
+`SHALL` maintain no model-choice state of any kind.
 
 #### Scenario: Multimodal model instructed to use native vision
 
@@ -265,6 +308,17 @@ Given the plugin is installed,
 when the config hook runs and the system transform executes,
 then no model-choice file is read or written and no
 `[vision:model-choice]`-style instruction is injected.
+
+#### Scenario: Keyless multimodal session gets the native instruction
+
+Given a provider that is present in the cached catalog with a multimodal
+model but is NOT availability-configured (no `enabled_providers` entry, no
+config provider block, no environment key set, no stored credential), and a
+request whose `input.model` names that model,
+when the system transform runs,
+then `output.system` contains a `[vision:native]` instruction and the
+session's images route natively instead of delegating to the vision skill
+or `vision_analyze`.
 
 ### Requirement: RV-4: Skill documents the routing split
 
@@ -547,14 +601,13 @@ equivalent) at module load or at any other time — this mirrors the kilo
 upstream spec decision (remove-skill-mirror-sync). Skill discovery `SHALL`
 come from the installed package directory, which resolves from the plugin's
 own location (`import.meta.url`) so it follows package upgrades
-automatically. The npm postinstall copy (`scripts/install-skill.mjs`) is a
-fallback for installs where the package dir is not scannable; single-file
-`~/.config/opencode/plugin/` installs `SHALL` rely on the documented manual
-`SKILL.md` copy.
+automatically. The package `SHALL NOT` ship a skill installer script (no
+postinstall copy); single-file `~/.config/opencode/plugin/` installs `SHALL`
+rely on the documented manual `SKILL.md` copy.
 
 #### Scenario: Package install discovers the skill without a mirror
 
-Given a package install (`file://` path or npm) with NO
+Given a package install (`file://` path, npm, or github spec) with NO
 `~/.config/opencode/skills/vision/SKILL.md` file present,
 when the plugin loads and skills are scanned,
 then the `vision` skill is discoverable from the installed package
