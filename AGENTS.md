@@ -68,7 +68,9 @@
 4. **终验强制官方安装模式**：任何合并/发布的改动，终验必须走
    `opencode plugin github:ChengZiiii/opencode-vision-bridge --global
    [--force]` → agent list / 冒烟全过才算完；`file://` 只算内环便利，
-   **不算验证**（npm 发布后同理，用 npm 名再走一轮）。文件布局（包外写入、
+   **不算验证**（npm 发布后同理，用 npm 名再走一轮）。push 前可先用本地
+   git 源等价测：`opencode plugin "git+file:///<仓库绝对路径>" --global`；
+   publish 前可先 `npm pack` 后用本地 tgz 路径装一遍。文件布局（包外写入、
    临时目录）变动时，加一轮 README 四步完整卸载 + 重装，确认环境还原。
    通用规则与完整避坑清单：`../opencode-plugin-dev-pitfalls.md`。
 5. **排错**：`opencode --print-logs` 看插件加载错误；改动不生效先清
