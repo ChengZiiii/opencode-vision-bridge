@@ -36,7 +36,7 @@
 1. **多模态模型**：图片 FilePart 原样直达，system transform 注入 `[vision:native]`，
    明确禁止委托。
 2. **纯文本模型**：messages transform 把图片落盘到
-   `<系统临时目录>/opencode-vision-bridge/` 并改写为 `[vision:dropped-image]` 标记 →
+   `<系统临时目录>/opencode-vision-delegate/` 并改写为 `[vision:dropped-image]` 标记 →
    SKILL.md 引导调用 `vision_analyze` 工具。
 3. **工具错误分类（skill 据此分支，勿乱改前缀）**：
    - `model not configured` → 提示用户配置，**不回退**子代理
@@ -66,7 +66,7 @@
    opencode
    ```
 4. **终验强制官方安装模式**：任何合并/发布的改动，终验必须走
-   `opencode plugin github:ChengZiiii/opencode-vision-bridge --global
+   `opencode plugin github:ChengZiiii/opencode-vision-delegate --global
    [--force]` → agent list / 冒烟全过才算完；`file://` 只算内环便利，
    **不算验证**（npm 发布后同理，用 npm 名再走一轮）。push 前可先用本地
    git 源等价测：`opencode plugin "git+file:///<仓库绝对路径>" --global`；
@@ -84,7 +84,7 @@
   形态（源码 / dist / store 安装）一套逻辑，缺失无害降级。
 - **安装器写的**：config `plugin` 数组条目 + store 目录，README 卸载
   章节已覆盖。
-- **插件包外写的**：仅 `<系统临时目录>/opencode-vision-bridge/`（图片
+- **插件包外写的**：仅 `<系统临时目录>/opencode-vision-delegate/`（图片
   物化）。config hook 的运行时注入不落盘、随插件移除即消失。新增任何
   包外写入必须先更新 README 卸载章节再动代码。
 
@@ -141,10 +141,10 @@ bun run bundle
 
 三种方式任选其一（插件 id 均为 `"vision"`，**并存会重复注册冲突**）：
 
-- **npm（主推）**：`opencode plugin opencode-vision-bridge --global` 安装并自动
+- **npm（主推）**：`opencode plugin opencode-vision-delegate --global` 安装并自动
   patch `~/.config/opencode/opencode.json` 的 `plugin` 数组。升级加 `--force`。
 - **GitHub 源（已实机验证）**：`opencode plugin
-  github:ChengZiiii/opencode-vision-bridge --global`，走同一 store；分支/标签
+  github:ChengZiiii/opencode-vision-delegate --global`，走同一 store；分支/标签
   用 `#<ref>`。registry 安装最稳（tarball 路径完全不进 git 准备流程）。
 - **本地包**：opencode.json 的 `plugin` 数组写 `"file:///<仓库绝对路径>"`。
   skill 经 `skills.paths` 从包内直扫，无同步步骤。

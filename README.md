@@ -1,6 +1,6 @@
-# OpenCode Vision Bridge
+# OpenCode Vision Delegate
 
-> **Disclaimer:** OpenCode Vision Bridge is an independent, community-built project. It is **not** built by, endorsed by, or affiliated with the opencode team. It is a port of [kilo-vision-bridge](https://github.com/chengsongren/kilo-vision-bridge) (itself based on [wezzard/opencode-vision](https://github.com/wezzard/opencode-vision), MIT) back to the opencode plugin SDK, and builds on their design.
+> **Disclaimer:** OpenCode Vision Delegate is an independent, community-built project. It is **not** built by, endorsed by, or affiliated with the opencode team. It is a port of [kilo-vision-bridge](https://github.com/chengsongren/kilo-vision-bridge) (itself based on [wezzard/opencode-vision](https://github.com/wezzard/opencode-vision), MIT) back to the opencode plugin SDK, and builds on their design.
 
 ## Introduction
 
@@ -30,24 +30,26 @@ The two entries write disjoint registration systems, so there is no double-regis
 
 ```bash
 # install globally (available to all projects) — installs the package and patches the config
-opencode plugin opencode-vision-bridge --global
+opencode plugin opencode-vision-delegate --global
 
 # or install for the current project only
-opencode plugin opencode-vision-bridge
+opencode plugin opencode-vision-delegate
 
 # or install straight from GitHub (git source, works the same)
-opencode plugin github:ChengZiiii/opencode-vision-bridge --global
+opencode plugin github:ChengZiiii/opencode-vision-delegate --global
 ```
 
-Pin a specific version with `opencode plugin opencode-vision-bridge@<version>` (or a branch/tag with `github:ChengZiiii/opencode-vision-bridge#<ref>`). The command adds the package to the `plugin` array in your opencode config (global: `~/.config/opencode/opencode.json`; project: `.opencode/opencode.json`) and manages the package under opencode's package store (`~/.cache/opencode/packages/`). Equivalent manual config:
+Pin a specific version with `opencode plugin opencode-vision-delegate@<version>` (or a branch/tag with `github:ChengZiiii/opencode-vision-delegate#<ref>`). The command adds the package to the `plugin` array in your opencode config (global: `~/.config/opencode/opencode.json`; project: `.opencode/opencode.json`) and manages the package under opencode's package store (`~/.cache/opencode/packages/`). Equivalent manual config:
 
 ```jsonc
 {
-  "plugin": ["opencode-vision-bridge"]
+  "plugin": ["opencode-vision-delegate"]
 }
 ```
 
 After install, restart opencode. The plugin registers the `vision-agent` subagent and the `vision_analyze` tool on launch; the `vision` skill is discovered straight from the installed package directory via `skills.paths`.
+
+> **Renamed from `opencode-vision-bridge`** (the npm name belongs to an unrelated pre-captioning plugin by martinmose). If you installed this plugin before the rename via the git spec `github:ChengZiiii/opencode-vision-bridge`: switch the `plugin` entry in your opencode config to `github:ChengZiiii/opencode-vision-delegate`, run `opencode plugin github:ChengZiiii/opencode-vision-delegate --global --force`, and delete the old store dir `~/.cache/opencode/packages/github_ChengZiiii/opencode-vision-bridge` — opencode keys its package store on the install spec, so the renamed spec installs to a new dir and the old one is dead weight. (The old GitHub URL redirects, but keeping the old spec in your config would keep installing under the old store key.)
 
 > **Why this package ships no `build`/`postinstall` scripts:** opencode's bundled installer runs npm's git-dependency preparation whenever an installed-from-git package declares any of `preinstall`/`install`/`postinstall`/`prepack`/`prepare`/`build` (or a `workspaces` field), and that preparation fails inside the compiled opencode binary — see [opencode issue #49704](https://github.com/anomalyco/opencode/issues/49704). This package commits a pre-built `dist/index.js` and keeps `scripts` free of those names, so GitHub installs work on any machine.
 
@@ -60,12 +62,12 @@ Do not mix install methods for the same plugin id (`vision`) — they would doub
 
 ### Updating / uninstalling
 
-Re-run the install command **with `--force`** to replace the installed version (`opencode plugin opencode-vision-bridge --global --force`), then restart opencode.
+Re-run the install command **with `--force`** to replace the installed version (`opencode plugin opencode-vision-delegate --global --force`), then restart opencode.
 
 opencode 1.18 has **no built-in plugin uninstall command**. To uninstall manually (verified working):
 
 1. Remove the entry from the `plugin` array in your opencode config (`~/.config/opencode/opencode.json` for global, `.opencode/opencode.json` for project).
-2. Delete the package from opencode's store: `~/.cache/opencode/packages/<sanitized-spec>/` (e.g. `opencode-vision-bridge` or `github_ChengZiiii/opencode-vision-bridge`).
+2. Delete the package from opencode's store: `~/.cache/opencode/packages/<sanitized-spec>/` (e.g. `opencode-vision-delegate` or `github_ChengZiiii/opencode-vision-delegate`).
 3. Delete `~/.config/opencode/skills/vision/` if it exists (a leftover from a single-file install's manual copy).
 4. Optionally remove the `agent["vision-agent"]` model knob — otherwise `opencode agent list` keeps showing the name.
 
@@ -73,7 +75,7 @@ Restart opencode and the `vision-agent` subagent, the `vision_analyze` tool, and
 
 ## Quick start
 
-1. Install with `opencode plugin opencode-vision-bridge --global` and restart opencode.
+1. Install with `opencode plugin opencode-vision-delegate --global` and restart opencode.
 2. Set the vision model (see below): `agent["vision-agent"].model = "<provider-id>/<model-id>"` — use any vision-capable model from your configured providers.
 3. Drag an image into the opencode input (or reference an image path) and ask a visual question. The orchestrator detects the visual intent, delegates to `vision_analyze`, and the vision model returns structured JSON matching the template.
 
@@ -148,7 +150,7 @@ The tool selects the HTTP request shape from the resolved endpoint URL: endpoint
 The plugin routes images based on the **handling model** of each request, not a single global toggle. The `vision-agent` subagent is always registered — regardless of the top-level `model` — so a text-only agent in a mixed config can always delegate.
 
 - **Multimodal (vision-capable) model.** Image `FilePart`s pass through untouched — the model sees images natively. A system transform injects a `[vision:native]` instruction telling the model to inspect images directly and NOT use the vision skill, call `vision_analyze`, or spawn a `vision-agent` subagent.
-- **Text-only model.** Image `FilePart`s are materialized under the plugin's temp dir (`<system-tmp>/opencode-vision-bridge/`) and rewritten to `[vision:dropped-image]` markers carrying the resulting path. The orchestrator then delegates via the `vision_analyze` tool, falling back to the `vision-agent` subagent only when the tool is unavailable or errors with a provider/protocol/HTTP failure.
+- **Text-only model.** Image `FilePart`s are materialized under the plugin's temp dir (`<system-tmp>/opencode-vision-delegate/`) and rewritten to `[vision:dropped-image]` markers carrying the resulting path. The orchestrator then delegates via the `vision_analyze` tool, falling back to the `vision-agent` subagent only when the tool is unavailable or errors with a provider/protocol/HTTP failure.
 
 Capability is resolved per request: the messages transform checks the message's `info.model` first, then the agent's configured model, then the top-level config `model` as a final fallback. Provider/model ids match case-insensitively. To bypass the skill per task on a text-only model, prepend this to your prompt:
 

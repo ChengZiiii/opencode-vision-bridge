@@ -95,7 +95,7 @@ let registeredModels = new Map<string, VisionModelEntry>()
 let visionModelKeys = new Set<string>()
 let agentVisionCapable = new Map<string, boolean>()
 let defaultVisionCapable = false
-const IMAGE_TMP_DIR = join(tmpdir(), "opencode-vision-bridge")
+const IMAGE_TMP_DIR = join(tmpdir(), "opencode-vision-delegate")
 
 const PERMISSION = {
   edit: "deny",

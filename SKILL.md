@@ -78,11 +78,11 @@ When a tool result contains an `attachments[]` entry with `mime` starting `image
 
 When the user drops an image into the chat, the vision plugin's `experimental.chat.messages.transform` hook routes per handling model. If the message's model is vision-capable (multimodal), the image `FilePart` passes through untouched — the model sees the image natively and no marker is produced, so the rest of this source does not apply. If the message's model is text-only, the hook materializes the image as a file in the operating system's temporary directory and surfaces the path to the orchestrator. The `[vision:dropped-image]` marker below therefore only appears for text-only models. For every user-message `FilePart` with `type: "file"` and `mime: "image/*"` on the text-only path, the hook:
 
-1. Saves the bytes under the plugin's `opencode-vision-bridge` temporary subdirectory via `writeFileSync` (data URLs) or `copyFileSync` (file paths). Image bytes never touch the shell.
+1. Saves the bytes under the plugin's `opencode-vision-delegate` temporary subdirectory via `writeFileSync` (data URLs) or `copyFileSync` (file paths). Image bytes never touch the shell.
 2. Replaces the `FilePart` with text like:
 
    ```text
-   [vision:dropped-image] {"mime":"image/png","path":"<system-temp>/opencode-vision-bridge/vision-...png","originalFilename":"screenshot.png"}
+   [vision:dropped-image] {"mime":"image/png","path":"<system-temp>/opencode-vision-delegate/vision-...png","originalFilename":"screenshot.png"}
    ```
 
 When you see `[vision:dropped-image]`, parse the following JSON object and use `path` in the `Images to Inspect` section.

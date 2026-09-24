@@ -12703,7 +12703,7 @@ var registeredModels = new Map;
 var visionModelKeys = new Set;
 var agentVisionCapable = new Map;
 var defaultVisionCapable = false;
-var IMAGE_TMP_DIR = join(tmpdir(), "opencode-vision-bridge");
+var IMAGE_TMP_DIR = join(tmpdir(), "opencode-vision-delegate");
 var PERMISSION = {
   edit: "deny",
   read: "allow",

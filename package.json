@@ -1,5 +1,5 @@
 {
-  "name": "opencode-vision-bridge",
+  "name": "opencode-vision-delegate",
   "version": "0.1.0",
   "description": "Visual bridge for opencode. Registers the native vision_analyze tool (model configured by the user via the opencode agent model override on vision-agent) with the vision-agent subagent as fallback, and teaches a text-only orchestrator to extract visual intent, design a task-specific JSON response template, and delegate via the tool (or subagent).",
   "type": "module",
@@ -34,13 +34,13 @@
   ],
   "license": "MIT",
   "author": "chengsongren",
-  "homepage": "https://github.com/ChengZiiii/opencode-vision-bridge#readme",
+  "homepage": "https://github.com/ChengZiiii/opencode-vision-delegate#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ChengZiiii/opencode-vision-bridge.git"
+    "url": "git+https://github.com/ChengZiiii/opencode-vision-delegate.git"
   },
   "bugs": {
-    "url": "https://github.com/ChengZiiii/opencode-vision-bridge/issues"
+    "url": "https://github.com/ChengZiiii/opencode-vision-delegate/issues"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": "^1.18.0"
