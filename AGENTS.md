@@ -52,11 +52,12 @@
    ```powershell
    # 常驻自动重建
    bun build ./plugin.ts --outfile ./dist/index.js --target node --format esm --watch
-   # 或一次性：bun run build
+   # 或一次性：bun run bundle
    ```
 2. **SKILL.md 改动零手动**：本地 `file://` 安装时 skill 经 `skills.paths`
    从包目录直扫（opencode 的 skill 扫描读的是活配置，插件推送即生效，
-   `skill/index.ts` 无信任门控）；npm 安装另有 postinstall 兜底复制。
+   `skill/index.ts` 无信任门控）；npm/github 安装同样如此——包内
+   SKILL.md 随 `files` 发布，单通道发现。
    改完重启即生效，无同步步骤。
 3. **沙盒隔离测试**（不污染真实配置）：
    ```powershell
@@ -72,16 +73,19 @@
 ```powershell
 node --test tests/*.test.mjs   # 单测。注意：Node 24 下 `node --test tests/` 目录形式不可用
 bun run typecheck
-bun run build
+bun run bundle
 ```
 
 - 所有纯逻辑改动必须带/更新单测（stub fetch 即可，无需真实 API）。
-- **build 严禁加 `--packages external`**：dist 必须自包含——单文件安装
+- **bundle 严禁加 `--packages external`**：dist 必须自包含——单文件安装
   没有 node_modules，运行时无法解析 `@opencode-ai/plugin`。
 - **dist 随仓库提交**（不在 .gitignore）：`opencode plugin` 的 github 源
-  安装经 arborist/pacote 做依赖准备，**严禁添加 prepare/prepublishOnly
-  等发布期脚本**（会触发内层 npm install 导致 "git dep preparation
-  failed"）；npm 发布前手动 `bun run build` 后直接 `npm publish`。
+  安装经 arborist/pacote 做依赖准备，**manifest 严禁声明六个触发脚本名
+  （preinstall/install/postinstall/prepack/prepare/build）或 `workspaces`
+  字段**（第 7 触发器）——任何一个都会触发内层 npm install，在编译版
+  opencode 二进制内必挂（"git dep preparation failed"，上游
+  anomalyco/opencode#49704 同款结论）。构建脚本因此叫 `bundle`；
+  npm 发布前手动 `bun run bundle` 后直接 `npm publish`。
 
 ## 关键设计决策（勿轻易推翻，改前先讨论）
 
@@ -111,7 +115,7 @@ bun run build
    不存在）。**禁止重新引入模块加载时的 SKILL.md 镜像复制**——上游 kilo 项目
    已通过 openspec change `remove-skill-mirror-sync`（spec RB-9）明确废除，
    本移植亦经实机验证（中立目录 + 全新沙盒）skills.paths 单通道足够。
-   npm postinstall 的复制仅作单文件等非包安装的兜底。
+   单文件安装靠 README 记载的手动复制（包内无安装器脚本）。
 
 ## 安装方式
 
@@ -119,11 +123,14 @@ bun run build
 
 - **npm（主推）**：`opencode plugin opencode-vision-bridge --global` 安装并自动
   patch `~/.config/opencode/opencode.json` 的 `plugin` 数组。升级加 `--force`。
+- **GitHub 源（已实机验证）**：`opencode plugin
+  github:ChengZiiii/opencode-vision-bridge --global`，走同一 store；分支/标签
+  用 `#<ref>`。registry 安装最稳（tarball 路径完全不进 git 准备流程）。
 - **本地包**：opencode.json 的 `plugin` 数组写 `"file:///<仓库绝对路径>"`。
   skill 经 `skills.paths` 从包内直扫，无同步步骤。
 - **单文件**：复制 `dist/index.js` 到 `~/.config/opencode/plugin/vision.js`；
   **skill 需手动复制** SKILL.md 到 `~/.config/opencode/skills/vision/SKILL.md`
-  （postinstall 兜底不会为手动复制运行）。
+  （包内无安装器脚本）。
 
 ## OpenSpec 规格工作流（libretto）
 

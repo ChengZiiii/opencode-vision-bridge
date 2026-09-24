@@ -34,9 +34,12 @@ opencode plugin opencode-vision-bridge --global
 
 # or install for the current project only
 opencode plugin opencode-vision-bridge
+
+# or install straight from GitHub (git source, works the same)
+opencode plugin github:ChengZiiii/opencode-vision-bridge --global
 ```
 
-Pin a specific version with `opencode plugin opencode-vision-bridge@<version>`. The command adds the package to the `plugin` array in your opencode config (global: `~/.config/opencode/opencode.json`; project: `.opencode/opencode.json`) and manages the package under opencode's package store (`~/.cache/opencode/packages/`). Equivalent manual config:
+Pin a specific version with `opencode plugin opencode-vision-bridge@<version>` (or a branch/tag with `github:ChengZiiii/opencode-vision-bridge#<ref>`). The command adds the package to the `plugin` array in your opencode config (global: `~/.config/opencode/opencode.json`; project: `.opencode/opencode.json`) and manages the package under opencode's package store (`~/.cache/opencode/packages/`). Equivalent manual config:
 
 ```jsonc
 {
@@ -44,18 +47,29 @@ Pin a specific version with `opencode plugin opencode-vision-bridge@<version>`. 
 }
 ```
 
-After install, restart opencode. The plugin registers the `vision-agent` subagent and the `vision_analyze` tool on launch; the `vision` skill is discovered straight from the installed package directory via `skills.paths` (the package postinstall additionally copies it to `~/.config/opencode/skills/vision/` as a fallback for non-package installs).
+After install, restart opencode. The plugin registers the `vision-agent` subagent and the `vision_analyze` tool on launch; the `vision` skill is discovered straight from the installed package directory via `skills.paths`.
+
+> **Why this package ships no `build`/`postinstall` scripts:** opencode's bundled installer runs npm's git-dependency preparation whenever an installed-from-git package declares any of `preinstall`/`install`/`postinstall`/`prepack`/`prepare`/`build` (or a `workspaces` field), and that preparation fails inside the compiled opencode binary — see [opencode issue #49704](https://github.com/anomalyco/opencode/issues/49704). This package commits a pre-built `dist/index.js` and keeps `scripts` free of those names, so GitHub installs work on any machine.
 
 ### Alternative installs
 
-- **Local checkout:** `"plugin": ["file:///<repo-absolute-path>"]` — the skill is discovered straight from the package directory via `skills.paths`, no postinstall needed.
-- **Single file:** copy `dist/index.js` to `~/.config/opencode/plugin/vision.js` and copy `SKILL.md` to `~/.config/opencode/skills/vision/SKILL.md` manually (the postinstall fallback does not run for manual file copies).
+- **Local checkout:** `"plugin": ["file:///<repo-absolute-path>"]` — the skill is discovered straight from the package directory via `skills.paths`.
+- **Single file:** copy `dist/index.js` to `~/.config/opencode/plugin/vision.js` and copy `SKILL.md` to `~/.config/opencode/skills/vision/SKILL.md` manually (there is no installer script).
 
 Do not mix install methods for the same plugin id (`vision`) — they would double-register.
 
 ### Updating / uninstalling
 
-Re-run the install command **with `--force`** to replace the installed version (`opencode plugin opencode-vision-bridge --global --force`), then restart opencode. To uninstall: remove the entry from the `plugin` array in your config and delete the package dir under `~/.cache/opencode/packages/`; also remove `~/.config/opencode/skills/vision/` if it was installed.
+Re-run the install command **with `--force`** to replace the installed version (`opencode plugin opencode-vision-bridge --global --force`), then restart opencode.
+
+opencode 1.18 has **no built-in plugin uninstall command**. To uninstall manually (verified working):
+
+1. Remove the entry from the `plugin` array in your opencode config (`~/.config/opencode/opencode.json` for global, `.opencode/opencode.json` for project).
+2. Delete the package from opencode's store: `~/.cache/opencode/packages/<sanitized-spec>/` (e.g. `opencode-vision-bridge` or `github_ChengZiiii/opencode-vision-bridge`).
+3. Delete `~/.config/opencode/skills/vision/` if it exists (a leftover from a single-file install's manual copy).
+4. Optionally remove the `agent["vision-agent"]` model knob — otherwise `opencode agent list` keeps showing the name.
+
+Restart opencode and the `vision-agent` subagent, the `vision_analyze` tool, and the `vision` skill are gone.
 
 ## Quick start
 

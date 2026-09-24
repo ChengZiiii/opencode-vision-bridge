@@ -15,12 +15,12 @@ import {
 
 // Resolve the data dir (the skills.paths entry pointing at SKILL.md) relative
 // to the bundle. When run from source, `import.meta.url` is plugin.ts and
-// SKILL.md sits next to it. When run from the built dist/index.js, the npm
+// SKILL.md sits next to it. When run from the built dist/index.js, the
 // package root (one level up from dist/) has SKILL.md. Plugin-directory
 // installs (a lone dist/index.js copied into ~/.config/opencode/plugin/) have
 // no SKILL.md sibling, so the lookup falls back to bundleDir harmlessly: the
-// skills.paths scan finds no SKILL.md there and the npm postinstall copy (or
-// the manual copy documented in the README) is the discovery mechanism.
+// skills.paths scan finds no SKILL.md there and the manual copy documented
+// in the README is the discovery mechanism for that install mode.
 const bundleDir = dirname(fileURLToPath(import.meta.url))
 const candidateDirs = [bundleDir, join(bundleDir, "..")]
 const dataDir =
@@ -553,8 +553,9 @@ const plugin: Plugin = async () => ({
   // under each path, reading the live merged config at scan time
   // (packages/opencode/src/skill/index.ts: cfg.skills.paths -> scan, absolute
   // paths allowed, no trust gating — opencode has no skill_path_origins
-  // mechanism, so there is nothing extra to mark). The npm postinstall copy
-  // is a fallback for installs where the package dir is not scannable.
+  // mechanism, so there is nothing extra to mark). Every package install
+  // mode (npm, github spec, file://) is covered by this single channel;
+  // single-file installs use the manual SKILL.md copy from the README.
   const cfgAny = cfg as ConfigLike & {
     skills?: { paths?: string[] }
   }
