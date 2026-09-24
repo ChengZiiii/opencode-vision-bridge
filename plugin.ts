@@ -346,6 +346,37 @@ function splitModel(value: string): { provider: string; modelID: string } | unde
   }
 }
 
+// Capability-RESOLUTION key set: every catalog provider (merged with config
+// provider model overrides) filtered by image-input capability. Unlike
+// discoverVisionModels above, this is deliberately NOT gated by provider
+// availability (enabled_providers / config provider blocks / env keys /
+// auth.json): deciding whether the model ALREADY serving a request can see
+// images must trust catalog metadata alone, because keyless providers
+// (opencode Zen, `OPENCODE_API_KEY` unset, no auth.json entry) satisfy no
+// availability signal yet are fully usable — gating here dropped their
+// multimodal sessions' images into delegation markers (verified on
+// opencode/space-bunny-free, 2026-09-25). Deprecated models are included:
+// capability reflects the model actually handling the request, while RB-5's
+// deprecated filter governs only the discovery/suggestion path.
+function buildVisionModelKeys(
+  catalog: ModelsCatalog,
+  config: ConfigLike,
+): Set<string> {
+  const keys = new Set<string>()
+  const providerIDs = new Set([
+    ...Object.keys(catalog),
+    ...Object.keys(config.provider ?? {}),
+    ...Object.keys(config.providers ?? {}),
+  ])
+  for (const providerID of providerIDs) {
+    const models = providerModels(providerID, catalog, config)
+    for (const [modelKey, model] of Object.entries(models)) {
+      if (isVisionModel(model)) keys.add(`${providerID}/${modelKey}`.toLowerCase())
+    }
+  }
+  return keys
+}
+
 function configuredModelVisionCapable(
   model: string | undefined,
   catalog: ModelsCatalog,
@@ -527,13 +558,14 @@ const plugin: Plugin = async () => ({
     dynamicModels.map((m) => [`${m.provider}/${m.model_id}`, m])
   )
 
-  // Build per-agent capability state from the registered vision model set
-  // and each configured agent's model. Built BEFORE the single vision-agent
-  // registration below so it captures user-configured agents; the subagent's
-  // own messages carry a vision info.model that wins first in the transform.
-  visionModelKeys = new Set(
-    [...registeredModels.keys()].map((k) => k.toLowerCase()),
-  )
+  // Capability-resolution keys: the FULL catalog (see buildVisionModelKeys)
+  // — availability-ungated so keyless-provider sessions resolve correctly.
+  // The per-agent and default capability state below reuses the same
+  // catalog+config source; agent entries are captured BEFORE the single
+  // vision-agent registration so user-configured agents are included (the
+  // subagent's own messages carry a vision info.model that wins first in
+  // the transform).
+  visionModelKeys = buildVisionModelKeys(catalog, cfg as ConfigLike)
   defaultVisionCapable = configuredModelVisionCapable(cfg.model, catalog, cfg as ConfigLike)
   agentVisionCapable = new Map()
   const agentsSection = (cfg as ConfigLike & {

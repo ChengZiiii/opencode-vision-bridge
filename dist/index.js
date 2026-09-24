@@ -12895,6 +12895,22 @@ function splitModel(value) {
     modelID: value.slice(slash + 1)
   };
 }
+function buildVisionModelKeys(catalog, config2) {
+  const keys = new Set;
+  const providerIDs = new Set([
+    ...Object.keys(catalog),
+    ...Object.keys(config2.provider ?? {}),
+    ...Object.keys(config2.providers ?? {})
+  ]);
+  for (const providerID of providerIDs) {
+    const models = providerModels(providerID, catalog, config2);
+    for (const [modelKey, model] of Object.entries(models)) {
+      if (isVisionModel(model))
+        keys.add(`${providerID}/${modelKey}`.toLowerCase());
+    }
+  }
+  return keys;
+}
 function configuredModelVisionCapable(model, catalog, config2) {
   if (!model)
     return false;
@@ -13010,7 +13026,7 @@ var plugin = async () => ({
     const catalog = readModelsCatalog();
     const dynamicModels = discoverVisionModels(catalog, cfg);
     registeredModels = new Map(dynamicModels.map((m) => [`${m.provider}/${m.model_id}`, m]));
-    visionModelKeys = new Set([...registeredModels.keys()].map((k) => k.toLowerCase()));
+    visionModelKeys = buildVisionModelKeys(catalog, cfg);
     defaultVisionCapable = configuredModelVisionCapable(cfg.model, catalog, cfg);
     agentVisionCapable = new Map;
     const agentsSection = cfg.agent ?? {};
