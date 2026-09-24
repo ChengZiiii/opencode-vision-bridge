@@ -78,6 +78,10 @@ bun run build
 - 所有纯逻辑改动必须带/更新单测（stub fetch 即可，无需真实 API）。
 - **build 严禁加 `--packages external`**：dist 必须自包含——单文件安装
   没有 node_modules，运行时无法解析 `@opencode-ai/plugin`。
+- **dist 随仓库提交**（不在 .gitignore）：`opencode plugin` 的 github 源
+  安装经 arborist/pacote 做依赖准备，**严禁添加 prepare/prepublishOnly
+  等发布期脚本**（会触发内层 npm install 导致 "git dep preparation
+  failed"）；npm 发布前手动 `bun run build` 后直接 `npm publish`。
 
 ## 关键设计决策（勿轻易推翻，改前先讨论）
 
