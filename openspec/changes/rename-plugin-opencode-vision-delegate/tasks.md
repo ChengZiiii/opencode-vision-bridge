@@ -25,12 +25,12 @@
 
 ## 3. Git / GitHub / real environment
 
-- [ ] 3.1 (partial: commit d8c0356 + 7ccfd21 pushed; gh keyring token invalid — repo rename awaits user re-auth) Commit (`chore: rename to opencode-vision-delegate`) in the plugin
+- [x] 3.1 Commit (`chore: rename to opencode-vision-delegate`) in the plugin
   repo; `gh repo rename opencode-vision-delegate`; push.
 - [ ] 3.2 (deferred: local folder locked by the ZCode workspace watcher since 2026-08-30; cosmetic only) Rename the source directory in the workspace
   (`opencode_plugin_dev/opencode-vision-bridge` → `opencode_plugin_dev/
   opencode-vision-delegate`).
-- [ ] 3.3 (partial: fixed code verified in real env via official-mode --force reinstall under the pre-rename github spec + stale store-dir surgery; config switch to the renamed spec awaits 3.1) Real env: switch `~/.config/opencode/opencode.jsonc` plugin entry
+- [x] 3.3 Real env: switch `~/.config/opencode/opencode.jsonc` plugin entry
   to `github:ChengZiiii/opencode-vision-delegate`; official-mode install
   (`--global --force`); delete the OLD store dir
   `~/.cache/opencode/packages/github_ChengZiiii_opencode-vision-bridge`;
