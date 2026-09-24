@@ -173,6 +173,7 @@ To stop delegation entirely, set `disable: true` on `agent["vision-agent"]`. Thi
 - **Missing `vision-agent` subagent / `vision_analyze` tool:** no model is pre-configured — set one via the agent model override on `vision-agent`. Confirm the override is set and that `~/.cache/opencode/models.json` contains the provider. The tool is also absent when `disable: true` is set on `vision-agent`.
 - **`vision_analyze` returns "model not configured":** set `agent["vision-agent"].model` to a vision-capable provider/model from your configured providers; the skill does not fall back on this error.
 - **`vision_analyze` returns a provider error:** check the API key (`opencode auth login <provider>` / `auth.json` entry, or the provider's `*_API_KEY` env var) and the endpoint (`provider.<id>.options.baseURL` in config, else the catalog/built-in endpoint). The skill automatically falls back to the `vision-agent` subagent on provider/protocol/HTTP errors.
+- **A multimodal model still delegates to the vision skill / `vision_analyze`:** update the plugin. Before the keyless-provider fix, capability resolution only consulted providers that passed availability gating (config blocks / env keys / `auth.json`), so keyless providers like opencode Zen (`opencode/space-bunny-free`, `opencode/big-pickle`, …) were misjudged text-only and their images were rewritten to `[vision:dropped-image]` markers. Capability is now resolved from the full cached model catalog (`~/.cache/opencode/models.json`) plus config provider model overrides, independent of availability.
 
 ## License
 
