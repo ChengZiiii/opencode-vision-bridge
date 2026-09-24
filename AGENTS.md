@@ -65,8 +65,26 @@
    $env:OPENCODE_TEST_HOME  = "<临时>/home"   # 仅影响插件内的目录解析
    opencode
    ```
-4. **排错**：`opencode --print-logs` 看插件加载错误；改动不生效先清
+4. **终验强制官方安装模式**：任何合并/发布的改动，终验必须走
+   `opencode plugin github:ChengZiiii/opencode-vision-bridge --global
+   [--force]` → agent list / 冒烟全过才算完；`file://` 只算内环便利，
+   **不算验证**（npm 发布后同理，用 npm 名再走一轮）。文件布局（包外写入、
+   临时目录）变动时，加一轮 README 四步完整卸载 + 重装，确认环境还原。
+   通用规则与完整避坑清单：`../opencode-plugin-dev-pitfalls.md`。
+5. **排错**：`opencode --print-logs` 看插件加载错误；改动不生效先清
    `~/.cache/opencode/packages/` 包缓存。
+
+## 文件账本（改布局前必读）
+
+插件对自己的文件体系记账，卸载才可能干净（详见避坑文档第 6 节）：
+
+- **包内**：自有资源（SKILL.md）从 `import.meta.url` 相对解析，三种运行
+  形态（源码 / dist / store 安装）一套逻辑，缺失无害降级。
+- **安装器写的**：config `plugin` 数组条目 + store 目录，README 卸载
+  章节已覆盖。
+- **插件包外写的**：仅 `<系统临时目录>/opencode-vision-bridge/`（图片
+  物化）。config hook 的运行时注入不落盘、随插件移除即消失。新增任何
+  包外写入必须先更新 README 卸载章节再动代码。
 
 ## 测试与构建（硬性检查）
 
